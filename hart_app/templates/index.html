@@ -1,0 +1,150 @@
+<!DOCTYPE html>{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Client</title>
+    <link rel="stylesheet" href="{% static "css/style.css" %}"> 
+    <script src = "{% static "js/min.js" %}"></script>
+</head>
+<body>
+    <section class="hello" style="display:none;">
+        <div class="hello__inner">
+            <h1>Привет, введи свое имя :</h1>
+            <div class="form"><input type="text" name="" id="name"> <input type="submit" value="Войти в чат" onclick="Reg_users()"></div>
+        </div>
+    </section>
+    <section class="chat">
+        <div class="chat__inner">
+            <div class="chat__okno">
+                
+            </div>
+            <div class="chat__online">
+                <p>Пётр</p>
+            </div>
+            <i><input type="text" name="sms" class="chat__sms" id="smsInput" placeholder="Суда писать..." ></i>
+        </div>
+    </section>
+
+    <script>
+        $(document).ready(function() {
+    $('#smsInput').on('keypress', function(event) {
+        
+        if (event.which === 13) {
+            event.preventDefault(); 
+            console.log(1)
+            sendMessage(1); 
+        }
+    });
+});
+        function Reg_users()
+        {
+            name = $("#name").val()
+            if(name == '')
+            {
+                return
+            }
+            else
+            {
+                sendMessage(2)
+            }
+        }
+        $(document).ready(function() {
+            $(".hello").fadeIn(1000); // Плавное появление за 1 секунду
+        });
+        // Создаем WebSocket-соединение
+        const socket = new WebSocket(`ws://${window.location.host}/ws/hart_app/`);
+
+        // Обработчик открытия соединения
+        socket.onopen = function(event) {
+            console.log("WebSocket is open now.");
+        };
+
+        // Обработчик получения сообщения
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const message = data.message;
+            const name = data.name;
+            const online = data.name_online;
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0'); // Форматируем часы
+            const minutes = String(now.getMinutes()).padStart(2, '0'); // Форматируем минуты
+
+    // Форматируем время в нужном формате
+        const currentTime = `${hours}:${minutes}`;
+            if(message == "regOK")
+            {
+                const sms_all = data.sms_all
+                $(".hello").fadeOut(1000);
+                $(".chat__online").html(online)
+                $('.chat__okno').html(sms_all)
+            }
+            else
+            {
+                if(message != null)
+                {
+                $('.chat__okno').append(`
+                <div class="sms">
+                    <div class="name__user">`+name+`</div>
+
+                    <div class="dekor">
+                        <p class="sms__text">`+message+`</p>
+                    </div>
+
+                    <div class="time">`+currentTime+`</div>
+                </div>
+                `)
+                }
+                $(".chat__online").html(online)
+                $(".chat__okno").animate({scrollTop: $(".chat__okno")[0].scrollHeight}, 200);
+            }
+
+        };
+
+        // Обработчик закрытия соединения
+        socket.onclose = function(event) {
+            console.log("WebSocket is closed now.");
+        };
+
+        // Обработчик ошибок
+        socket.onerror = function(error) {
+            console.error("WebSocket error:", error);
+        };
+
+        // Функция для отправки сообщения
+        function sendMessage(type) {
+             message = $('#name').val();
+            if(type == 1)
+            {
+                message = $('#smsInput').val();
+                if (message) 
+                {
+                    // Отправляем сообщение на сервер
+                    socket.send(JSON.stringify({
+                    'message': message,
+                    'registr': false
+                    }));
+
+                    // Очищаем поле ввода
+                    $('#smsInput').val('');
+                }
+
+            }
+            if(type==2)
+            {
+                if (message) 
+                {
+                    // Отправляем сообщение на сервер
+                    socket.send(JSON.stringify({
+                    'message': message,
+                    'registr': true
+                    }));
+
+                    // Очищаем поле ввода
+
+                }
+            }
+        }
+    </script>
+</body>
+</html>
